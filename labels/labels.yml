@@ -1,0 +1,112 @@
+# Shared labels for Horrible Dev projects. Each top-level key is a group;
+# sync_labels.py --groups picks which ones a repository gets. A project can
+# add its own file after this one (later files win for the same name).
+#
+# Each label: name, color (six hex digits, no #), description (optional),
+# renamed_from (optional: old names to rename, so issues keep the label).
+
+type:
+  - name: bug
+    color: d73a4a
+    description: Something isn't working
+  - name: enhancement
+    color: a2eeef
+    description: New feature or request
+  - name: documentation
+    color: 0075ca
+    description: Improvements or additions to documentation
+  - name: question
+    color: d876e3
+    description: Further information is requested
+  - name: duplicate
+    color: cfd3d7
+    description: This issue or pull request already exists
+  - name: invalid
+    color: e4e669
+    description: This doesn't seem right
+  - name: good first issue
+    color: 7057ff
+    description: Good for newcomers
+  - name: help wanted
+    color: 008672
+    description: Extra attention is needed
+  - name: accessibility
+    color: f143ab
+    description: Barrier affecting people with disabilities
+
+# The status words, the same on GitHub, forum tags and replies.
+status:
+  - name: "status: fixed"
+    color: 0e8a16
+    description: The bug is fixed
+  - name: "status: solved"
+    color: 0e8a16
+    description: The question is answered
+  - name: "status: implemented"
+    color: 0e8a16
+    description: The idea has shipped
+  - name: "status: in progress"
+    color: 1d76db
+    description: Being worked on for the next release
+  - name: "status: planned"
+    color: 5319e7
+    description: Planned for a later release
+  - name: "status: needs info"
+    color: fbca04
+    description: Waiting on details from the reporter
+  - name: "status: won't do"
+    color: ffffff
+    description: This will not be worked on
+  - name: needs-retest
+    color: c5def5
+    description: Reported on an older build; needs a retest on the current release
+
+priority:
+  - name: "priority: high"
+    color: b60205
+    description: "Fix soon: crashes, broken features, many people affected"
+  - name: "priority: medium"
+    color: fbca04
+    description: Should be fixed in the next release or two
+  - name: "priority: low"
+    color: c2e0c6
+    description: Nice to have, rare, or cosmetic
+
+# Examples: pick the platforms a project ships on.
+platform:
+  - name: windows
+    color: c5def5
+  - name: macos
+    color: "999999"
+    description: macOS builds
+  - name: linux
+    color: c5def5
+  - name: steam-deck
+    color: c5def5
+  - name: android
+    color: c5def5
+  - name: xbox
+    color: c5def5
+  - name: xbox-360
+    color: c5def5
+  - name: wii-u
+    color: c5def5
+  - name: switch
+    color: c5def5
+
+# Examples: areas most projects have. Add your own in a project file.
+area:
+  - name: audio
+    color: c5def5
+  - name: crash
+    color: c5def5
+  - name: input
+    color: c5def5
+  - name: network
+    color: c5def5
+  - name: performance
+    color: c5def5
+  - name: rendering
+    color: c5def5
+  - name: ui
+    color: c5def5
