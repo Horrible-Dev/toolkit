@@ -67,3 +67,32 @@ jobs:
       toolkit-ref: ${{ github.sha }}
       reminders: |
         This is a test run.
+
+  release-files:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Make test files
+        run: |
+          mkdir dist
+          echo windows > dist/example-windows-x64.zip
+          echo linux > dist/example-linux-x64.AppImage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-test-files
+          path: dist
+          retention-days: 1
+
+  release-dry-run:
+    needs: release-files
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: v0.0.0-testing
+      artifacts: release-test-*
+      config: release-notes/example.toml
+      notes: A dry run from the toolkit's CI.
+      dry-run: true
+      toolkit-ref: ${{ github.sha }}
