@@ -1,0 +1,141 @@
+name: Release
+
+# Reusable: turns a tag into a GitHub release. It gathers the files your
+# earlier jobs uploaded as artifacts, writes SHA256SUMS, writes the notes
+# (with release_notes.py when you give a config) and publishes. A tag ending
+# in -testing becomes a pre-release. dry-run builds everything but publishes
+# nothing.
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "The tag to release (default: the tag that started the workflow)"
+        type: string
+        default: ""
+      artifacts:
+        description: "Which of this run's artifacts to publish (a name pattern; empty: none)"
+        type: string
+        default: "*"
+      config:
+        description: "Your release-notes TOML (see release-notes/example.toml); empty: plain notes"
+        type: string
+        default: ""
+      whats-new:
+        description: "Your what's-new file; {version} is filled in. A missing file is skipped."
+        type: string
+        default: "docs/release-notes/{version}.md"
+      notes:
+        description: "Extra text for a test build's notes"
+        type: string
+        default: ""
+      prerelease:
+        description: "Make a pre-release even without -testing in the tag"
+        type: boolean
+        default: false
+      dry-run:
+        description: "Build the files and notes, publish nothing"
+        type: boolean
+        default: false
+      toolkit-ref:
+        description: "The toolkit version to run the scripts from"
+        type: string
+        default: v0
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: Horrible-Dev/toolkit
+          ref: ${{ inputs.toolkit-ref }}
+          path: .toolkit
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Gather the files
+        if: ${{ inputs.artifacts != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ inputs.artifacts }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/dist
+
+      - name: Checksums
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir -p dist
+          cd dist
+          files=$(find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%P\n' | sort)
+          if [ -n "$files" ]; then
+            # shellcheck disable=SC2086
+            sha256sum $files > SHA256SUMS
+            cat SHA256SUMS
+          else
+            echo "No files to publish."
+          fi
+
+      - name: Notes
+        env:
+          CONFIG: ${{ inputs.config }}
+          NEW_FILE_PATTERN: ${{ inputs.whats-new }}
+          EXTRA: ${{ inputs.notes }}
+          FORCE_PRERELEASE: ${{ inputs.prerelease }}
+          COMMIT: ${{ github.sha }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          version=${TAG#v}
+          version=${version%-testing}
+          testing=false
+          case "$TAG" in *-testing) testing=true ;; esac
+          [ "$FORCE_PRERELEASE" = true ] && testing=true
+          new_file=${NEW_FILE_PATTERN//\{version\}/$version}
+          notes="$RUNNER_TEMP/notes.md"
+          if [ -n "$CONFIG" ]; then
+            set -- --config "$CONFIG" --version "$version" --tag "$TAG" --commit "$COMMIT" \
+              --dir "$RUNNER_TEMP/dist" --whats-new "$new_file" --output "$notes"
+            [ "$testing" = true ] && set -- "$@" --testing --notes "$EXTRA"
+            python3 .toolkit/release-notes/release_notes.py "$@"
+            name=$(python3 -c 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["name"])' "$CONFIG")
+          else
+            {
+              [ "$testing" = true ] && printf '**Test build.** It might break, and the next test build replaces it.\n\n'
+              [ -n "$EXTRA" ] && printf '%s\n\n' "$EXTRA"
+              [ -f "$new_file" ] && { cat "$new_file"; printf '\n\n'; }
+              printf 'Commit: %s\n' "$COMMIT"
+            } > "$notes"
+            name=$REPO_NAME
+          fi
+          {
+            echo "TITLE=$name ${TAG#v}"
+            echo "TESTING=$testing"
+          } >> "$GITHUB_ENV"
+          cat "$notes" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish
+        if: ${{ !inputs.dry-run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -- "$TAG" --title "$TITLE" --notes-file "$RUNNER_TEMP/notes.md" --verify-tag
+          [ "$TESTING" = true ] && set -- "$@" --prerelease
+          shopt -s nullglob
+          files=("$RUNNER_TEMP"/dist/*)
+          gh release create "$@" "${files[@]}"
+
+      - name: Dry run
+        if: ${{ inputs.dry-run }}
+        run: |
+          echo "Dry run: would publish '$TITLE' (pre-release: $TESTING) with:"
+          ls -l "$RUNNER_TEMP/dist"

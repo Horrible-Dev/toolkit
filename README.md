@@ -164,6 +164,46 @@ The workflow's own token can only read the calling repository. To cover others, 
 
 Run the script by hand with `python3 housekeeping/housekeeping.py --repo OWNER/app --repo OWNER/website`.
 
+## Releases
+
+The reusable release workflow turns a tag into a GitHub release:
+
+1. It gathers the files your build jobs uploaded as artifacts.
+2. It writes `SHA256SUMS` for them.
+3. It writes the notes. With a `config`, that's release_notes.py; without one, plain notes from your what's-new file.
+4. It publishes the release. A tag ending in `-testing` becomes a pre-release.
+
+```yaml
+# .github/workflows/release.yml
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux
+          path: dist/
+  release:
+    needs: build
+    permissions:
+      contents: write
+    uses: Horrible-Dev/toolkit/.github/workflows/release.yml@v0
+    with:
+      artifacts: dist-*
+      config: .github/release-notes.toml
+      whats-new: docs/release-notes/{version}.md
+```
+
+`dry-run: true` builds the files and notes and shows them in the run's summary, without publishing. `prerelease: true` makes any tag a pre-release. `notes` adds a line to a test build's notes.
+
 ## Credits
 
 Parts of the toolkit are adapted from ChupathingyCE's release and housekeeping tools.
