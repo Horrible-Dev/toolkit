@@ -89,7 +89,7 @@ jobs:
       - name: Notes
         env:
           CONFIG: ${{ inputs.config }}
-          WHATS_NEW: ${{ inputs.whats-new }}
+          NEW_FILE_PATTERN: ${{ inputs.whats-new }}
           EXTRA: ${{ inputs.notes }}
           FORCE_PRERELEASE: ${{ inputs.prerelease }}
           COMMIT: ${{ github.sha }}
@@ -100,11 +100,11 @@ jobs:
           testing=false
           case "$TAG" in *-testing) testing=true ;; esac
           [ "$FORCE_PRERELEASE" = true ] && testing=true
-          whats_new=${WHATS_NEW//\{version\}/$version}
+          new_file=${NEW_FILE_PATTERN//\{version\}/$version}
           notes="$RUNNER_TEMP/notes.md"
           if [ -n "$CONFIG" ]; then
             set -- --config "$CONFIG" --version "$version" --tag "$TAG" --commit "$COMMIT" \
-              --dir "$RUNNER_TEMP/dist" --whats-new "$whats_new" --output "$notes"
+              --dir "$RUNNER_TEMP/dist" --whats-new "$new_file" --output "$notes"
             [ "$testing" = true ] && set -- "$@" --testing --notes "$EXTRA"
             python3 .toolkit/release-notes/release_notes.py "$@"
             name=$(python3 -c 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["name"])' "$CONFIG")
@@ -112,13 +112,13 @@ jobs:
             {
               [ "$testing" = true ] && printf '**Test build.** It might break, and the next test build replaces it.\n\n'
               [ -n "$EXTRA" ] && printf '%s\n\n' "$EXTRA"
-              [ -f "$whats_new" ] && { cat "$whats_new"; printf '\n\n'; }
+              [ -f "$new_file" ] && { cat "$new_file"; printf '\n\n'; }
               printf 'Commit: %s\n' "$COMMIT"
             } > "$notes"
             name=$REPO_NAME
           fi
           {
-            echo "TITLE=$name $version"
+            echo "TITLE=$name ${TAG#v}"
             echo "TESTING=$testing"
           } >> "$GITHUB_ENV"
           cat "$notes" >> "$GITHUB_STEP_SUMMARY"
