@@ -125,6 +125,45 @@ python3 release_notes.py --config .github/release-notes.toml --version 1.2.0 \
 
 For a test build, add `--testing --tag v1.2.0-testing`. The notes then start with the config's `[testing]` text, or a default one.
 
+## Housekeeping
+
+[housekeeping/housekeeping.py](housekeeping/housekeeping.py) reports, across your repositories:
+
+- branches already merged into the default branch, so safe to delete
+- branches with no commits in a while
+- pull requests nobody has touched in a while
+
+It only reports. Nothing is deleted. The reusable workflow puts the report in the run's summary, and posts it to Discord when you give it a webhook.
+
+```yaml
+# .github/workflows/housekeeping.yml
+name: Housekeeping
+on:
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  report:
+    uses: Horrible-Dev/toolkit/.github/workflows/housekeeping.yml@v0
+    with:
+      repos: |
+        OWNER/app
+        OWNER/website
+      keep: release-1.x
+      reminders: |
+        Remove old build folders on the build machine.
+    secrets:
+      token: ${{ secrets.READ_TOKEN }}
+      webhook: ${{ secrets.DISCORD_WEBHOOK }}
+```
+
+The workflow's own token can only read the calling repository. To cover others, pass a read-only token as `token`. `upstreams` takes `OWNER/NAME=UPSTREAM/NAME` lines: branches with an open pull request to that upstream are kept.
+
+Run the script by hand with `python3 housekeeping/housekeeping.py --repo OWNER/app --repo OWNER/website`.
+
 ## Credits
 
 Parts of the toolkit are adapted from ChupathingyCE's release and housekeeping tools.

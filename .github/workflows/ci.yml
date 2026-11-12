@@ -47,3 +47,23 @@ jobs:
 
       - name: pytest
         run: python -m pytest -q tests
+
+  # The reusable workflows, run on this repository from this commit: the
+  # labels as a dry run, and a housekeeping report without a webhook.
+  labels-dry-run:
+    permissions:
+      contents: read
+      issues: write
+    uses: ./.github/workflows/labels.yml
+    with:
+      toolkit-ref: ${{ github.sha }}
+
+  housekeeping-report:
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: ./.github/workflows/housekeeping.yml
+    with:
+      toolkit-ref: ${{ github.sha }}
+      reminders: |
+        This is a test run.

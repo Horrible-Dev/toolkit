@@ -1,0 +1,100 @@
+name: Housekeeping
+
+# Reusable: a report across repositories of merged branches (safe to delete),
+# quiet branches and waiting pull requests. It only reports; nothing is
+# deleted. The report goes in the run's summary, and to Discord when a
+# webhook is given.
+
+on:
+  workflow_call:
+    inputs:
+      repos:
+        description: "Space- or newline-separated OWNER/NAME list (default: the calling repository)"
+        type: string
+        default: ""
+      keep:
+        description: "Space-separated branches that live on purpose (main and master always are)"
+        type: string
+        default: ""
+      upstreams:
+        description: "Newline-separated OWNER/NAME=UPSTREAM/NAME pairs: open pull requests there keep their branches"
+        type: string
+        default: ""
+      reminders:
+        description: "Newline-separated lines for an 'Also check' list"
+        type: string
+        default: ""
+      days:
+        description: "A branch without commits this many days is quiet"
+        type: number
+        default: 14
+      pr-days:
+        description: "A pull request untouched this many days is waiting"
+        type: number
+        default: 7
+      title:
+        description: "The Discord post's title"
+        type: string
+        default: Housekeeping
+      toolkit-ref:
+        description: "The toolkit version to run the script from"
+        type: string
+        default: v0
+    secrets:
+      token:
+        description: "A token that can read every repository listed (default: the workflow's own token)"
+        required: false
+      webhook:
+        description: "A Discord webhook URL for the report (optional)"
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Horrible-Dev/toolkit
+          ref: ${{ inputs.toolkit-ref }}
+          path: .toolkit
+
+      - name: Report
+        env:
+          GH_TOKEN: ${{ secrets.token || github.token }}
+          REPOS: ${{ inputs.repos || github.repository }}
+          KEEP: ${{ inputs.keep }}
+          UPSTREAMS: ${{ inputs.upstreams }}
+          REMINDERS: ${{ inputs.reminders }}
+          DAYS: ${{ inputs.days }}
+          PR_DAYS: ${{ inputs.pr-days }}
+        run: |
+          set -- --days "$DAYS" --pr-days "$PR_DAYS"
+          for repo in $REPOS; do set -- "$@" --repo "$repo"; done
+          for branch in $KEEP; do set -- "$@" --keep "$branch"; done
+          while IFS= read -r pair; do
+            [ -n "$pair" ] && set -- "$@" --upstream "$pair"
+          done <<< "$UPSTREAMS"
+          while IFS= read -r line; do
+            [ -n "$line" ] && set -- "$@" --reminder "$line"
+          done <<< "$REMINDERS"
+          python3 .toolkit/housekeeping/housekeeping.py "$@" > "$RUNNER_TEMP/report.md"
+          cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo 'report<<HOUSEKEEPING_EOF'
+            cat "$RUNNER_TEMP/report.md"
+            echo 'HOUSEKEEPING_EOF'
+          } >> "$GITHUB_ENV"
+
+      - name: Post to Discord
+        uses: ./.toolkit/actions/discord-post
+        with:
+          webhook: ${{ secrets.webhook }}
+          title: ${{ inputs.title }}
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          description: ${{ env.report }}
+          color: "10070709"
