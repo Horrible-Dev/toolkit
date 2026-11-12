@@ -1,0 +1,46 @@
+# An example release-notes config. Copy it into your repository and change
+# the names. Every download group links the first of its files that the
+# release has; groups with none are left out.
+
+name = "Example"
+repository = "OWNER/example"
+description = "A one-line description, shown when the what's-new file has no headline."
+# The checksum file's name (default: SHA256SUMS)
+checksums = "SHA256SUMS"
+
+[[downloads]]
+label = "Windows"
+files = ["example-windows-x64.zip"]
+
+[[downloads]]
+label = "Mac"
+files = ["example-macos.zip"]
+
+[[downloads]]
+label = "Linux"
+files = ["example-linux-x64.AppImage", "example-linux-x64.zip"]
+
+# Extra sections, after what's new. folded = true (the default) puts a section
+# in a collapsed block. A section with items shows only when one is present.
+# An item with requires shows only when that file is present too.
+[[sections]]
+title = "Older systems"
+folded = false
+
+[[sections.items]]
+label = "Windows 32-bit"
+file = "example-windows-x86.zip"
+requires = "example-windows-x64.zip"
+
+[[sections]]
+title = "Running a server"
+text = "See the server guide in the repository."
+
+[[sections.items]]
+label = "Linux x64 server"
+file = "example-server-linux-x64.zip"
+note = "most VPSes"
+
+# The top of a test build's notes. {name} and {version} are filled in.
+[testing]
+text = "**Test build.** {name} {version}, for testers. It might break. For everyday use, get the latest release."
