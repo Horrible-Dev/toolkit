@@ -2,7 +2,17 @@
 
 Shared GitHub workflows, actions and scripts for Horrible Dev projects. Each project keeps its own facts (names, downloads, repositories) in its own config file. The toolkit holds the logic.
 
-Pin a major version tag, like `@v0`. Breaking changes only come with a new major version.
+What's here:
+
+- [Labels](#labels): one shared label set and a sync script
+- [Discord posts](#discord-posts): a webhook action for releases, issues and your own messages
+- [Release notes](#release-notes): release pages from a project config
+- [Housekeeping](#housekeeping): a report of old branches and waiting pull requests
+- [Releases](#releases): a tag to a GitHub release with checksums
+
+## Versions
+
+`@v0` follows the newest 0.x release. To stay on one release, use its tag, like `@v0.1.0`. The reusable workflows check out the toolkit's scripts at `toolkit-ref` (default `v0`), so set it to the same tag when you pin one.
 
 ## Labels
 
