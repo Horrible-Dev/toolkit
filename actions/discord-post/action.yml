@@ -1,0 +1,52 @@
+name: Discord post
+description: Post an embed to a Discord webhook, for a release, an issue or a message of your own.
+
+inputs:
+  webhook:
+    description: "The webhook URL, from a secret. Empty: nothing is posted."
+    required: false
+    default: ""
+  kind:
+    description: "release, issue or custom. release and issue fill the post from the triggering event."
+    required: false
+    default: custom
+  title:
+    description: "The embed's title (overrides the event's)"
+    required: false
+    default: ""
+  url:
+    description: "The link on the title (overrides the event's)"
+    required: false
+    default: ""
+  description:
+    description: "The embed's text (overrides the event's). Cut to Discord's 4096 characters."
+    required: false
+    default: ""
+  color:
+    description: "The embed's color, as a decimal number"
+    required: false
+    default: "5793266"
+  ping-role:
+    description: "A role ID to mention. Only that role is pinged."
+    required: false
+    default: ""
+  everyone:
+    description: "true to mention @everyone. Mentions are off otherwise."
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Post to Discord
+      shell: bash
+      env:
+        WEBHOOK: ${{ inputs.webhook }}
+        KIND: ${{ inputs.kind }}
+        TITLE: ${{ inputs.title }}
+        URL: ${{ inputs.url }}
+        DESCRIPTION: ${{ inputs.description }}
+        COLOR: ${{ inputs.color }}
+        PING_ROLE: ${{ inputs.ping-role }}
+        EVERYONE: ${{ inputs.everyone }}
+      run: "$GITHUB_ACTION_PATH/post.sh"

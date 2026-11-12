@@ -47,6 +47,47 @@ jobs:
 
 To sync other repositories, list them in `repos` and pass a token that can edit their labels as the `token` secret.
 
+## Discord posts
+
+[actions/discord-post](actions/discord-post) posts one embed to a Discord webhook. Keep the webhook URL in a secret. Without one, the step posts nothing and passes.
+
+- `kind: release` or `kind: issue` fills the title, link and text from the event that started the workflow.
+- `kind: custom` posts your own `title`, `url` and `description`.
+- Mentions are off. `ping-role` pings one role by ID. `everyone: true` pings @everyone, only when you ask.
+- Rate limits and Discord outages are retried, then end in a warning. A deleted webhook fails the step.
+
+```yaml
+# .github/workflows/discord.yml
+name: Discord
+on:
+  release:
+    types: [published]
+  issues:
+    types: [opened]
+permissions:
+  contents: read
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Horrible-Dev/toolkit/actions/discord-post@v0
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          kind: ${{ github.event_name == 'release' && 'release' || 'issue' }}
+```
+
+A message of your own:
+
+```yaml
+      - uses: Horrible-Dev/toolkit/actions/discord-post@v0
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          title: Nightly build
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          description: A new nightly build is up.
+          color: "3066993"
+```
+
 ## Credits
 
 Parts of the toolkit are adapted from ChupathingyCE's release and housekeeping tools.
