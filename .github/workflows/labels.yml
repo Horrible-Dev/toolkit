@@ -1,0 +1,79 @@
+name: Labels
+
+# Reusable: makes repositories' labels match the toolkit's labels.yml and
+# your own label files. A dry run unless apply is true; never deletes a label
+# unless prune is true.
+
+on:
+  workflow_call:
+    inputs:
+      files:
+        description: "Your label files, space-separated paths in your repository, read after the toolkit's"
+        type: string
+        default: ""
+      base:
+        description: "Start from the toolkit's labels.yml"
+        type: boolean
+        default: true
+      groups:
+        description: "Comma-separated groups to use, from every file (empty: all)"
+        type: string
+        default: "type,status,priority"
+      repos:
+        description: "Space-separated OWNER/NAME list (default: the calling repository)"
+        type: string
+        default: ""
+      apply:
+        description: "Make the changes; otherwise only list them"
+        type: boolean
+        default: false
+      prune:
+        description: "Also delete labels that are not in the files"
+        type: boolean
+        default: false
+      toolkit-ref:
+        description: "The toolkit version to run the script from"
+        type: string
+        default: v0
+    secrets:
+      token:
+        description: "A token that can edit labels in every repository listed (default: the workflow's own token)"
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: Horrible-Dev/toolkit
+          ref: ${{ inputs.toolkit-ref }}
+          path: .toolkit
+
+      - name: Install
+        run: python3 -m pip install --quiet pyyaml
+
+      - name: Sync labels
+        env:
+          GH_TOKEN: ${{ secrets.token || github.token }}
+          FILES: ${{ inputs.files }}
+          BASE: ${{ inputs.base }}
+          LABEL_GROUPS: ${{ inputs.groups }}
+          REPOS: ${{ inputs.repos || github.repository }}
+          APPLY: ${{ inputs.apply }}
+          PRUNE: ${{ inputs.prune }}
+        run: |
+          set -- --groups "$LABEL_GROUPS"
+          [ "$BASE" = true ] && set -- "$@" --file .toolkit/labels/labels.yml
+          for file in $FILES; do set -- "$@" --file "$file"; done
+          for repo in $REPOS; do set -- "$@" --repo "$repo"; done
+          [ "$APPLY" = true ] && set -- "$@" --apply
+          [ "$PRUNE" = true ] && set -- "$@" --prune
+          python3 .toolkit/labels/sync_labels.py "$@" | tee -a "$GITHUB_STEP_SUMMARY"
