@@ -88,6 +88,43 @@ A message of your own:
           color: "3066993"
 ```
 
+## Release notes
+
+[release-notes/release_notes.py](release-notes/release_notes.py) writes a release page's notes from your project's TOML config and the files you're publishing. It needs Python 3.11 or later.
+
+The notes go in this order:
+
+1. A headline. It's the first line of your what's-new file, or the config's `description`.
+2. The downloads, as direct links. Each group links the first of its files the release has.
+3. What's new: the rest of your what's-new file.
+4. Your extra sections. Folded ones go in a collapsed block.
+5. The commit and the checksum file.
+
+Start from [release-notes/example.toml](release-notes/example.toml):
+
+```toml
+name = "Example"
+repository = "OWNER/example"
+description = "A one-line description."
+
+[[downloads]]
+label = "Windows"
+files = ["example-windows-x64.zip"]
+
+[[downloads]]
+label = "Linux"
+files = ["example-linux-x64.AppImage", "example-linux-x64.zip"]
+```
+
+Then run it on the folder of files:
+
+```sh
+python3 release_notes.py --config .github/release-notes.toml --version 1.2.0 \
+    --commit "$GITHUB_SHA" --dir dist --whats-new docs/release-notes/1.2.0.md > notes.md
+```
+
+For a test build, add `--testing --tag v1.2.0-testing`. The notes then start with the config's `[testing]` text, or a default one.
+
 ## Credits
 
 Parts of the toolkit are adapted from ChupathingyCE's release and housekeeping tools.
